@@ -27,13 +27,13 @@ echo "ROS version is: "$ROS_VERSION
 
 # clear `build/` folder.
 # TODO: Do not clear these folders, if the last build is based on the same ROS version.
-rm -rf ../../build/
-rm -rf ../../devel/
-rm -rf ../../install/
+# rm -rf ../../build/
+# rm -rf ../../devel/
+# rm -rf ../../install/
 # clear src/CMakeLists.txt if it exists.
-if [ -f ../CMakeLists.txt ]; then
-    rm -f ../CMakeLists.txt
-fi
+# if [ -f ../CMakeLists.txt ]; then
+#     rm -f ../CMakeLists.txt
+# fi
 
 # exit
 
@@ -57,14 +57,14 @@ if [ $ROS_VERSION = ${VERSION_ROS1} ]; then
     cd ../../
     catkin_make -DROS_EDITION=${VERSION_ROS1}
 elif [ $ROS_VERSION = ${VERSION_ROS2} ]; then
-    cd ../../
-    colcon build --cmake-args -DROS_EDITION=${VERSION_ROS2} -DHUMBLE_ROS=${ROS_HUMBLE}
+    cd ../../../
+    colcon build --cmake-args -DROS_EDITION=${VERSION_ROS2} -DHUMBLE_ROS=${ROS_HUMBLE} --packages-select livox_ros_driver2
 fi
 popd > /dev/null
 
 # remove the substituted folders/files
-if [ $ROS_VERSION = ${VERSION_ROS2} ]; then
-    rm -rf launch/
-fi
+# if [ $ROS_VERSION = ${VERSION_ROS2} ]; then
+#     rm -rf launch/
+# fi
 
-popd > /dev/null
+# popd > /dev/null
