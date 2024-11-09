@@ -103,6 +103,7 @@ class Lddc final {
 
   void PublishPointcloud2(LidarDataQueue *queue, uint8_t index);
   void PublishCustomPointcloud(LidarDataQueue *queue, uint8_t index);
+  void PublishBothPointclouds(LidarDataQueue *queue, uint8_t index);
   void PublishPclMsg(LidarDataQueue *queue, uint8_t index);
 
   void PublishImuData(LidarImuDataQueue& imu_data_queue, const uint8_t index);
@@ -152,6 +153,8 @@ class Lddc final {
 #elif defined BUILDING_ROS2
   PublisherPtr private_pub_[kMaxSourceLidar];
   PublisherPtr global_pub_;
+  PublisherPtr global_std_pub_;
+  PublisherPtr global_custom_pub_;
   PublisherPtr private_imu_pub_[kMaxSourceLidar];
   PublisherPtr global_imu_pub_;
 #endif

@@ -146,6 +146,7 @@ DriverNode::DriverNode(const rclcpp::NodeOptions & node_options)
   this->get_parameter("output_data_type", output_type);
   this->get_parameter("frame_id", frame_id);
 
+  // xfer_format = kLivoxCustomMsg;
   // xfer_format = kBothPclTypeMsg;
   DRIVER_INFO(*this, "xfer_format = %d", xfer_format);
 

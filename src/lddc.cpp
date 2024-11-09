@@ -174,12 +174,15 @@ void Lddc::PollingLidarPointCloudData(uint8_t index, LidarDevice *lidar) {
     } else if (kPclPxyziMsg == transfer_format_) {
       PublishPclMsg(p_queue, index);
     } else if (kBothPclTypeMsg == transfer_format_) {
-      // std::cout << "---------------- Hey I'm here 2------------------" << std::endl;
-      transfer_format_ = kLivoxCustomMsg;
-      PublishCustomPointcloud(p_queue, index);
+      // // std::cout << "---------------- Hey I'm here 2 ------------------" << p_queue->rd_idx << std::endl;
       // transfer_format_ = kPointCloud2Msg;
-      // PublishPointcloud2(p_queue, index);           
-      transfer_format_ = kBothPclTypeMsg;
+      // PublishPointcloud2(p_queue, index); 
+      // // std::cout << "---------------- Hey I'm here 3 ------------------" << p_queue->wr_idx << std::endl;
+      // transfer_format_ = kLivoxCustomMsg;
+      // PublishCustomPointcloud(p_queue, index);          
+      // transfer_format_ = kBothPclTypeMsg;
+
+      PublishBothPointclouds(p_queue, index);
     }
   }
 }
@@ -211,7 +214,8 @@ void Lddc::PublishPointcloud2(LidarDataQueue *queue, uint8_t index) {
     StoragePacket pkg;
     QueuePop(queue, &pkg);
     if (pkg.points.empty()) {
-      printf("Publish point cloud2 failed, the pkg points is empty.\n");
+      std::cout << "Publish point cloud2 failed, the pkg points is empty." << std::endl;
+      // printf("Publish point cloud2 failed, the pkg points is empty.\n");
       continue;
     }
 
@@ -227,7 +231,8 @@ void Lddc::PublishCustomPointcloud(LidarDataQueue *queue, uint8_t index) {
     StoragePacket pkg;
     QueuePop(queue, &pkg);
     if (pkg.points.empty()) {
-      printf("Publish custom point cloud failed, the pkg points is empty.\n");
+      std::cout << "Publish custom point cloud failed, the pkg points is empty." << std::endl;
+      // printf("Publish custom point cloud failed, the pkg points is empty.\n");
       continue;
     }
 
@@ -236,6 +241,37 @@ void Lddc::PublishCustomPointcloud(LidarDataQueue *queue, uint8_t index) {
     FillPointsToCustomMsg(livox_msg, pkg);
     PublishCustomPointData(livox_msg, index);
   }
+}
+
+void Lddc::PublishBothPointclouds(LidarDataQueue *queue, uint8_t index) {
+  while(!QueueIsEmpty(queue)) {
+    StoragePacket pkg;
+    QueuePop(queue, &pkg);
+    if (pkg.points.empty()) {
+      std::cout << "Publish point cloud2 failed, the pkg points is empty." << std::endl;
+      // printf("Publish point cloud2 failed, the pkg points is empty.\n");
+      continue;
+    }
+
+    transfer_format_ = kPointCloud2Msg;
+    PointCloud2 cloud;
+    uint64_t timestamp = 0;
+    InitPointcloud2Msg(pkg, cloud, timestamp);
+    PublishPointcloud2Data(index, timestamp, cloud);
+
+
+    transfer_format_ = kLivoxCustomMsg;
+    CustomMsg livox_msg;
+    InitCustomMsg(livox_msg, pkg, index);
+    std::cout << "---- 1 " << std::endl;
+    FillPointsToCustomMsg(livox_msg, pkg);
+    std::cout << "---- 2 " << std::endl;
+    PublishCustomPointData(livox_msg, index);
+    std::cout << "---- 3 " << std::endl;
+
+    transfer_format_ = kBothPclTypeMsg;
+  }
+
 }
 
 /* for pcl::pxyzi */
@@ -410,11 +446,14 @@ void Lddc::PublishCustomPointData(const CustomMsg& livox_msg, const uint8_t inde
 #ifdef BUILDING_ROS1
   PublisherPtr publisher_ptr = Lddc::GetCurrentPublisher(index);
 #elif defined BUILDING_ROS2
+  // std::cout << "---- check 1 " << std::endl;
   Publisher<CustomMsg>::SharedPtr publisher_ptr = std::dynamic_pointer_cast<Publisher<CustomMsg>>(GetCurrentPublisher(index));
 #endif
 
   if (kOutputToRos == output_type_) {
-    publisher_ptr->publish(livox_msg);
+    // std::cout << "---- check 2 " << std::endl;
+    // publisher_ptr->publish(livox_msg);
+    // std::cout << "---- check 3 " << std::endl;
   } else {
 #ifdef BUILDING_ROS1
     if (bag_ && enable_lidar_bag_) {
@@ -556,7 +595,6 @@ std::shared_ptr<rclcpp::PublisherBase> Lddc::CreatePublisher(uint8_t msg_type,
       return cur_node_->create_publisher<ImuMsg>(topic_name,
           queue_size);
     } 
-    
     else {
       PublisherPtr null_publisher(nullptr);
       return null_publisher;
@@ -651,6 +689,7 @@ PublisherPtr Lddc::GetCurrentImuPublisher(uint8_t handle) {
 #elif defined BUILDING_ROS2
 std::shared_ptr<rclcpp::PublisherBase> Lddc::GetCurrentPublisher(uint8_t handle) {
   uint32_t queue_size = kMinEthPacketQueueSize;
+
   if (use_multi_topic_) {
     if (!private_pub_[handle]) {
       char name_str[48];
@@ -665,16 +704,31 @@ std::shared_ptr<rclcpp::PublisherBase> Lddc::GetCurrentPublisher(uint8_t handle)
     }
     return private_pub_[handle];
   } else {
-    if (!global_pub_) {
       std::string topic_name; // ("livox/lidar");
-      if (kPointCloud2Msg == transfer_format_)
-        topic_name = "livox/lidar";
-      else  if (kLivoxCustomMsg == transfer_format_)
-        topic_name = "livox/lidar_custom";
       queue_size = queue_size * 8; // shared queue size is 256, for all lidars
-      global_pub_ = CreatePublisher(transfer_format_, topic_name, queue_size);
-    }
-    return global_pub_;
+
+      if (kPointCloud2Msg == transfer_format_)
+      {
+        topic_name = "livox/lidar";
+        if (!global_std_pub_) {
+          global_std_pub_ = CreatePublisher(transfer_format_, topic_name, queue_size);  
+        }
+        return global_std_pub_;
+      }    
+      else if (kLivoxCustomMsg == transfer_format_)
+      {
+        topic_name = "livox/lidar_custom";
+        if (!global_custom_pub_) {
+          global_custom_pub_ = CreatePublisher(transfer_format_, topic_name, queue_size);  
+        }
+        return global_custom_pub_;
+      } else 
+      {
+        if (!global_pub_) {
+          global_pub_ = CreatePublisher(transfer_format_, topic_name, queue_size);  
+        }
+        return global_pub_;
+      }
   }
 }
 
