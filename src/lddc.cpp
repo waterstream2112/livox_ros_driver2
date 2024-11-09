@@ -263,11 +263,8 @@ void Lddc::PublishBothPointclouds(LidarDataQueue *queue, uint8_t index) {
     transfer_format_ = kLivoxCustomMsg;
     CustomMsg livox_msg;
     InitCustomMsg(livox_msg, pkg, index);
-    std::cout << "---- 1 " << std::endl;
     FillPointsToCustomMsg(livox_msg, pkg);
-    std::cout << "---- 2 " << std::endl;
     PublishCustomPointData(livox_msg, index);
-    std::cout << "---- 3 " << std::endl;
 
     transfer_format_ = kBothPclTypeMsg;
   }
@@ -452,7 +449,7 @@ void Lddc::PublishCustomPointData(const CustomMsg& livox_msg, const uint8_t inde
 
   if (kOutputToRos == output_type_) {
     // std::cout << "---- check 2 " << std::endl;
-    // publisher_ptr->publish(livox_msg);
+    publisher_ptr->publish(livox_msg);
     // std::cout << "---- check 3 " << std::endl;
   } else {
 #ifdef BUILDING_ROS1
