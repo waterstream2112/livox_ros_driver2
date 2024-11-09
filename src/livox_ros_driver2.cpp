@@ -121,7 +121,8 @@ DriverNode::DriverNode(const rclcpp::NodeOptions & node_options)
   DRIVER_INFO(*this, "Livox Ros Driver2 Version: %s", LIVOX_ROS_DRIVER2_VERSION_STRING);
 
   /** Init default system parameter */
-  int xfer_format = kPointCloud2Msg;
+  // int xfer_format = kPointCloud2Msg;
+  int xfer_format = kBothPclTypeMsg;
   int multi_topic = 0;
   int data_src = kSourceRawLidar;
   double publish_freq = 10.0; /* Hz */
@@ -144,6 +145,9 @@ DriverNode::DriverNode(const rclcpp::NodeOptions & node_options)
   this->get_parameter("publish_freq", publish_freq);
   this->get_parameter("output_data_type", output_type);
   this->get_parameter("frame_id", frame_id);
+
+  // xfer_format = kBothPclTypeMsg;
+  DRIVER_INFO(*this, "xfer_format = %d", xfer_format);
 
   if (publish_freq > 100.0) {
     publish_freq = 100.0;

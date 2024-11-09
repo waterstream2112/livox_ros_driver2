@@ -103,7 +103,7 @@ Lddc::~Lddc() {
     }
   }
 #endif
-  std::cout << "lddc destory!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+  std::cout << "lddc destroyed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 }
 
 int Lddc::RegisterLds(Lds *lds) {
@@ -167,11 +167,19 @@ void Lddc::PollingLidarPointCloudData(uint8_t index, LidarDevice *lidar) {
 
   while (!lds_->IsRequestExit() && !QueueIsEmpty(p_queue)) {
     if (kPointCloud2Msg == transfer_format_) {
+      // std::cout << "---------------- Hey I'm here ------------------" << std::endl;
       PublishPointcloud2(p_queue, index);
     } else if (kLivoxCustomMsg == transfer_format_) {
       PublishCustomPointcloud(p_queue, index);
     } else if (kPclPxyziMsg == transfer_format_) {
       PublishPclMsg(p_queue, index);
+    } else if (kBothPclTypeMsg == transfer_format_) {
+      // std::cout << "---------------- Hey I'm here 2------------------" << std::endl;
+      transfer_format_ = kLivoxCustomMsg;
+      PublishCustomPointcloud(p_queue, index);
+      // transfer_format_ = kPointCloud2Msg;
+      // PublishPointcloud2(p_queue, index);           
+      transfer_format_ = kBothPclTypeMsg;
     }
   }
 }
@@ -547,7 +555,9 @@ std::shared_ptr<rclcpp::PublisherBase> Lddc::CreatePublisher(uint8_t msg_type,
           "%s publish use imu format", topic_name.c_str());
       return cur_node_->create_publisher<ImuMsg>(topic_name,
           queue_size);
-    } else {
+    } 
+    
+    else {
       PublisherPtr null_publisher(nullptr);
       return null_publisher;
     }
@@ -656,7 +666,11 @@ std::shared_ptr<rclcpp::PublisherBase> Lddc::GetCurrentPublisher(uint8_t handle)
     return private_pub_[handle];
   } else {
     if (!global_pub_) {
-      std::string topic_name("livox/lidar");
+      std::string topic_name; // ("livox/lidar");
+      if (kPointCloud2Msg == transfer_format_)
+        topic_name = "livox/lidar";
+      else  if (kLivoxCustomMsg == transfer_format_)
+        topic_name = "livox/lidar_custom";
       queue_size = queue_size * 8; // shared queue size is 256, for all lidars
       global_pub_ = CreatePublisher(transfer_format_, topic_name, queue_size);
     }

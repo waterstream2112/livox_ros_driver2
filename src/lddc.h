@@ -44,6 +44,7 @@ typedef enum {
   kLivoxCustomMsg = 1,
   kPclPxyziMsg = 2,
   kLivoxImuMsg = 3,
+  kBothPclTypeMsg = 4,
 } TransferType;
 
 /** Type-Definitions based on ROS versions */
